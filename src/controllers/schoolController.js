@@ -1,21 +1,25 @@
 const mysql = require('mysql');
 
-// Database configuration
-const dbConfig = {
-  host: 'localhost',
-  user: 'root',
-  password: 'BKS@12',
-  database: 'school_management'
-};
-
-// Create a MySQL connection
-const connection = mysql.createConnection(dbConfig);
-
-// Connect to the database
-connection.connect(err => {
-  if (err) throw err;
-  console.log('Connected to the database');
+// Create a connection pool
+const db = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT || 3306 // Default MySQL port
 });
+
+// Example query
+db.getConnection((err, connection) => {
+  if (err) {
+    console.error('Database connection failed:', err);
+    return;
+  }
+  console.log('Database connected successfully');
+  connection.release();
+});
+
+module.exports = db;
 
 // Controller function to add a new school
 exports.addSchool = (req, res) => {
@@ -28,7 +32,7 @@ exports.addSchool = (req, res) => {
 
   // Insert the new school into the database
   const query = 'INSERT INTO schools (name, address, latitude, longitude) VALUES (?, ?, ?, ?)';
-  connection.query(query, [name, address, latitude, longitude], (err, results) => {
+  db.query(query, [name, address, latitude, longitude], (err, results) => {
     if (err) throw err;
     res.status(201).send('School added successfully');
   });
@@ -45,7 +49,7 @@ exports.listSchools = (req, res) => {
 
   // Fetch all schools from the database
   const query = 'SELECT * FROM schools';
-  connection.query(query, (err, results) => {
+  db.query(query, (err, results) => {
     if (err) throw err;
 
     // Calculate the distance for each school and sort by proximity
